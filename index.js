@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -25,6 +25,37 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const jobCategoriesCollection = client
+      .db("jobList")
+      .collection("jobCategories");
+    const categoriesCollection = client.db("jobList").collection("categories");
+
+    app.get("/categories", async (req, res) => {
+      const cursor = categoriesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.post("/jobCategories", async (req, res) => {
+      const newJob = req.body;
+      console.log(newJob);
+      const result = await jobCategoriesCollection.insertOne(newJob);
+      res.send(result);
+    });
+    app.get("/jobcategories", async (req, res) => {
+      const cursor = jobCategoriesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // specific job
+    app.get("/job/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobCategoriesCollection.findOne(query);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
