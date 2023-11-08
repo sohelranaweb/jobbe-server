@@ -52,10 +52,55 @@ async function run() {
     app.get("/job/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
+      const result = await jobCategoriesCollection.find(query);
+      res.send(result);
+    });
+
+    // update Job get
+    app.get("/updateJob/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
       const result = await jobCategoriesCollection.findOne(query);
       res.send(result);
     });
 
+    // udate job to jobCategories collection
+    app.put("/jobCategories/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedJob = req.body;
+      const job = {
+        $set: {
+          user_name: updatedJob.user_name,
+          user_email: updatedJob.user_email,
+          company_logo: updatedJob.company_logo,
+          job_title: updatedJob.job_title,
+          job_category: updatedJob.job_category,
+          salary_range: updatedJob.salary_range,
+          job_description: updatedJob.job_description,
+          posting_date: updatedJob.posting_date,
+          application_deadline: updatedJob.application_deadline,
+          applicants_number: updatedJob.applicants_number,
+          job_banner: updatedJob.job_banner,
+        },
+      };
+      const result = await jobCategoriesCollection.updateOne(
+        filter,
+        job,
+        options
+      );
+      res.send(result);
+    });
+
+    // get data by email
+    // app.get("/jobByEmail/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   console.log(email);
+    //   const query = { user_email: email };
+    //   const result = await jobCategoriesCollection.find(query).toArray();
+    //   res.send(result);
+    // });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
