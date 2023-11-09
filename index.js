@@ -1,12 +1,18 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.BD_USER}:${process.env.BD_PASS}@cluster0.5rfjgim.mongodb.net/?retryWrites=true&w=majority`;
@@ -31,6 +37,28 @@ async function run() {
       .db("jobList")
       .collection("appliedJobs");
 
+    // auth related api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log("user for token", user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      console.log("logging out user", user);
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
+    // job categories related api
     app.post("/jobCategories", async (req, res) => {
       const newJob = req.body;
       console.log(newJob);
@@ -107,17 +135,10 @@ async function run() {
       const newAppliedJob = req.body;
       console.log(newAppliedJob);
       const result = await appliedJobsCollection.insertOne(newAppliedJob);
+
       res.send(result);
     });
 
-    // get data by email
-    // app.get("/jobByEmail/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   console.log(email);
-    //   const query = { user_email: email };
-    //   const result = await jobCategoriesCollection.find(query).toArray();
-    //   res.send(result);
-    // });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
