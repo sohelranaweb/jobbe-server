@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
@@ -14,6 +15,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.BD_USER}:${process.env.BD_PASS}@cluster0.5rfjgim.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -26,6 +28,26 @@ const client = new MongoClient(uri, {
   },
 });
 
+// middlewares
+const logger = (req, res, next) => {
+  console.log("log info", req.method, req.url);
+  next();
+};
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  // console.log("token in the middleware", token);
+  // no token available
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -58,6 +80,7 @@ async function run() {
       console.log("logging out user", user);
       res.clearCookie("token", { maxAge: 0 }).send({ success: true });
     });
+
     // job categories related api
     app.post("/jobCategories", async (req, res) => {
       const newJob = req.body;
@@ -65,7 +88,7 @@ async function run() {
       const result = await jobCategoriesCollection.insertOne(newJob);
       res.send(result);
     });
-    app.get("/jobcategories", async (req, res) => {
+    app.get("/jobcategories", logger, verifyToken, async (req, res) => {
       const cursor = jobCategoriesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -125,8 +148,8 @@ async function run() {
     });
 
     // applied job related
-    app.get("/appliedJobs", async (req, res) => {
-      const cursor = appliedJobsCollection.find();
+    app.get("/appliedJobs", logger, verifyToken, async (req, res) => {
+      const cursor = appliedJobsCollection.find({ user_email: req.user.email });
       const result = await cursor.toArray();
       res.send(result);
     });
