@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://jobbe-client.web.app",
     credentials: true,
   })
 );
@@ -51,7 +51,7 @@ const verifyToken = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const jobCategoriesCollection = client
       .db("jobList")
       .collection("jobCategories");
@@ -88,7 +88,7 @@ async function run() {
       const result = await jobCategoriesCollection.insertOne(newJob);
       res.send(result);
     });
-    app.get("/jobcategories", logger, verifyToken, async (req, res) => {
+    app.get("/jobcategories", async (req, res) => {
       const cursor = jobCategoriesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -163,7 +163,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
